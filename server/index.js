@@ -129,27 +129,108 @@ app.get('/health', (req, res) => {
 });
 
 // Markets endpoint
-app.get('/api/markets', (req, res) => {
+app.get('/api/markets', async (req, res) => {
   console.log('📊 Markets endpoint hit');
   
-  const markets = [
-    { coin: 'HYPE', perp: 'HYPE-USD', spot: 'HYPE/USDC', price: 56.194 + (Math.random() - 0.5) * 2, volume24h: 141415767.71 },
-    { coin: 'ETH', perp: 'ETH-USD', spot: 'ETH/USDC', price: 4000 + (Math.random() - 0.5) * 200, volume24h: 1500000 },
-    { coin: 'BTC', perp: 'BTC-USD', spot: 'BTC/USDC', price: 65000 + (Math.random() - 0.5) * 3000, volume24h: 2500000 },
-    { coin: 'SOL', perp: 'SOL-USD', spot: 'SOL/USDC', price: 200 + (Math.random() - 0.5) * 20, volume24h: 800000 },
-    { coin: 'AVAX', perp: 'AVAX-USD', spot: 'AVAX/USDC', price: 30 + (Math.random() - 0.5) * 3, volume24h: 400000 },
-    { coin: 'ARB', perp: 'ARB-USD', spot: 'ARB/USDC', price: 1.2 + (Math.random() - 0.5) * 0.2, volume24h: 300000 },
-    { coin: 'PURR', perp: 'PURR-USD', spot: 'PURR/USDC', price: 0.05 + (Math.random() - 0.5) * 0.01, volume24h: 500000 },
-    { coin: 'MATIC', perp: 'MATIC-USD', spot: 'MATIC/USDC', price: 0.8 + (Math.random() - 0.5) * 0.1, volume24h: 600000 },
-    { coin: 'LINK', perp: 'LINK-USD', spot: 'LINK/USDC', price: 15 + (Math.random() - 0.5) * 2, volume24h: 700000 },
-    { coin: 'UNI', perp: 'UNI-USD', spot: 'UNI/USDC', price: 8 + (Math.random() - 0.5) * 1, volume24h: 400000 }
-  ];
-  
-  res.json({
-    ok: true,
-    data: markets,
-    timestamp: Date.now()
-  });
+  try {
+    // Fetch real market data from DEX Screener for major tokens
+    const tokens = ['ETH', 'BTC', 'SOL', 'AVAX', 'ARB', 'MATIC', 'LINK', 'UNI'];
+    const marketPromises = tokens.map(async (token) => {
+      try {
+        const response = await axios.get(`https://api.dexscreener.com/latest/dex/search?q=${token}`);
+        const data = response.data;
+        
+        if (data.pairs && data.pairs.length > 0) {
+          // Find the most liquid pair (highest volume)
+          const bestPair = data.pairs.reduce((best, current) => {
+            const currentVolume = parseFloat(current.volume?.h24 || 0);
+            const bestVolume = parseFloat(best.volume?.h24 || 0);
+            return currentVolume > bestVolume ? current : best;
+          });
+          
+          return {
+            coin: token,
+            perp: `${token}-USD`,
+            spot: `${token}/USDC`,
+            price: parseFloat(bestPair.priceUsd || 0),
+            volume24h: parseFloat(bestPair.volume?.h24 || 0),
+            priceChange24h: parseFloat(bestPair.priceChange?.h24 || 0),
+            marketCap: parseFloat(bestPair.fdv || 0),
+            liquidity: parseFloat(bestPair.liquidity?.usd || 0),
+            dexId: bestPair.dexId,
+            pairAddress: bestPair.pairAddress
+          };
+        }
+      } catch (error) {
+        console.warn(`Failed to fetch data for ${token}:`, error.message);
+      }
+      
+      // Fallback to static data if API fails
+      const fallbackPrices = {
+        'ETH': 4000, 'BTC': 65000, 'SOL': 200, 'AVAX': 30,
+        'ARB': 1.2, 'MATIC': 0.8, 'LINK': 15, 'UNI': 8
+      };
+      
+      return {
+        coin: token,
+        perp: `${token}-USD`,
+        spot: `${token}/USDC`,
+        price: fallbackPrices[token] || 0,
+        volume24h: 1000000, // Default volume
+        priceChange24h: 0,
+        marketCap: 0,
+        liquidity: 0,
+        dexId: 'fallback',
+        pairAddress: null
+      };
+    });
+    
+    const markets = await Promise.all(marketPromises);
+    
+    // Add HYPE as a special case (Hyperliquid native token)
+    markets.unshift({
+      coin: 'HYPE',
+      perp: 'HYPE-USD',
+      spot: 'HYPE/USDC',
+      price: 56.194, // Static price for HYPE as it's Hyperliquid-specific
+      volume24h: 141415767.71,
+      priceChange24h: 0,
+      marketCap: 0,
+      liquidity: 0,
+      dexId: 'hyperliquid',
+      pairAddress: null
+    });
+    
+    res.json({
+      ok: true,
+      data: markets,
+      timestamp: Date.now(),
+      source: 'dexscreener_api'
+    });
+    
+  } catch (error) {
+    console.error('Error fetching market data:', error);
+    
+    // Fallback to static data if all APIs fail
+    const fallbackMarkets = [
+      { coin: 'HYPE', perp: 'HYPE-USD', spot: 'HYPE/USDC', price: 56.194, volume24h: 141415767.71 },
+      { coin: 'ETH', perp: 'ETH-USD', spot: 'ETH/USDC', price: 4000, volume24h: 1500000 },
+      { coin: 'BTC', perp: 'BTC-USD', spot: 'BTC/USDC', price: 65000, volume24h: 2500000 },
+      { coin: 'SOL', perp: 'SOL-USD', spot: 'SOL/USDC', price: 200, volume24h: 800000 },
+      { coin: 'AVAX', perp: 'AVAX-USD', spot: 'AVAX/USDC', price: 30, volume24h: 400000 },
+      { coin: 'ARB', perp: 'ARB-USD', spot: 'ARB/USDC', price: 1.2, volume24h: 300000 },
+      { coin: 'MATIC', perp: 'MATIC-USD', spot: 'MATIC/USDC', price: 0.8, volume24h: 600000 },
+      { coin: 'LINK', perp: 'LINK-USD', spot: 'LINK/USDC', price: 15, volume24h: 700000 },
+      { coin: 'UNI', perp: 'UNI-USD', spot: 'UNI/USDC', price: 8, volume24h: 400000 }
+    ];
+    
+    res.json({
+      ok: true,
+      data: fallbackMarkets,
+      timestamp: Date.now(),
+      source: 'fallback_static'
+    });
+  }
 });
 
 
