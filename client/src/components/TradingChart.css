@@ -1,0 +1,373 @@
+/* Enhanced Trading Chart Styles */
+
+.trading-chart-container {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.4);
+  border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  overflow: hidden;
+}
+
+.chart-header-enhanced {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 24px 32px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  background: rgba(0, 0, 0, 0.2);
+}
+
+.price-section {
+  display: flex;
+  align-items: center;
+  gap: 24px;
+}
+
+.current-price {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.price-value {
+  font-size: 2.8rem;
+  font-weight: 700;
+  color: #ffffff;
+  line-height: 1;
+}
+
+.price-change {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.9rem;
+  font-weight: 600;
+}
+
+.price-change.positive {
+  color: #10b981;
+}
+
+.price-change.negative {
+  color: #ef4444;
+}
+
+.market-info {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.market-name {
+  font-size: 1.3rem;
+  font-weight: 600;
+  color: #ffffff;
+}
+
+.market-stats {
+  display: flex;
+  gap: 16px;
+}
+
+.stat {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 0.85rem;
+  color: #a0a0a0;
+}
+
+.chart-controls {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+}
+
+.timeframe-selector {
+  display: flex;
+  gap: 2px;
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 8px;
+  padding: 4px;
+}
+
+.timeframe-btn {
+  padding: 8px 12px;
+  background: transparent;
+  border: none;
+  color: #a0a0a0;
+  font-size: 0.85rem;
+  font-weight: 500;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.timeframe-btn:hover {
+  background: rgba(255, 255, 255, 0.1);
+  color: #ffffff;
+}
+
+.timeframe-btn.active {
+  background: rgba(59, 130, 246, 0.8);
+  color: #ffffff;
+}
+
+.chart-type-selector {
+  display: flex;
+  gap: 2px;
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 8px;
+  padding: 4px;
+}
+
+.chart-type-btn {
+  padding: 8px;
+  background: transparent;
+  border: none;
+  color: #a0a0a0;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.chart-type-btn:hover {
+  background: rgba(255, 255, 255, 0.1);
+  color: #ffffff;
+}
+
+.chart-type-btn.active {
+  background: rgba(59, 130, 246, 0.8);
+  color: #ffffff;
+}
+
+.chart-main-area {
+  display: flex;
+  flex: 1;
+  min-height: 0;
+}
+
+.price-chart-section {
+  flex: 1;
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+}
+
+.chart-loading {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  gap: 16px;
+  color: #a0a0a0;
+}
+
+.loading-spinner {
+  width: 32px;
+  height: 32px;
+  border: 3px solid rgba(255, 255, 255, 0.1);
+  border-top: 3px solid #3b82f6;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+.orderbook-section {
+  max-width: 400px;
+  min-width: 350px;
+  width: 100%;
+  background: rgba(0, 0, 0, 0.3);
+  border-left: 1px solid rgba(255, 255, 255, 0.1);
+  display: flex;
+  flex-direction: column;
+}
+
+.orderbook-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 16px 20px;
+  font-weight: 600;
+  color: #ffffff;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  font-size: 0.9rem;
+}
+
+.orderbook-content {
+  flex: 1;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+.orderbook-headers {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 8px;
+  padding: 12px 20px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: #a0a0a0;
+  text-transform: uppercase;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.asks-section,
+.bids-section {
+  flex: 1;
+  overflow: hidden;
+}
+
+.orderbook-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 8px;
+  padding: 6px 20px;
+  font-size: 0.8rem;
+  font-family: 'JetBrains Mono', monospace;
+  transition: background-color 0.2s ease;
+}
+
+.orderbook-row:hover {
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.orderbook-row.ask .price {
+  color: #ef4444;
+}
+
+.orderbook-row.bid .price {
+  color: #10b981;
+}
+
+.orderbook-row .size {
+  color: #a0a0a0;
+  text-align: right;
+}
+
+.orderbook-row .total {
+  color: #ffffff;
+  text-align: right;
+  font-weight: 500;
+}
+
+.spread-indicator {
+  padding: 8px 20px;
+  text-align: center;
+  background: rgba(255, 255, 255, 0.05);
+  border-top: 1px solid rgba(255, 255, 255, 0.05);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.spread-value {
+  font-size: 0.75rem;
+  color: #fbbf24;
+  font-weight: 600;
+  font-family: 'JetBrains Mono', monospace;
+}
+
+/* Responsive Design */
+@media (min-width: 1920px) {
+  .chart-header-enhanced {
+    padding: 28px 40px;
+  }
+  
+  .price-value {
+    font-size: 3.2rem;
+  }
+  
+  .market-name {
+    font-size: 1.4rem;
+  }
+  
+  .orderbook-section {
+    max-width: 450px;
+    min-width: 400px;
+  }
+  
+  .price-section {
+    gap: 32px;
+  }
+  
+  .market-stats {
+    gap: 24px;
+  }
+}
+
+@media (max-width: 1200px) {
+  .orderbook-section {
+    max-width: 250px;
+    min-width: 200px;
+  }
+  
+  .price-value {
+    font-size: 1.8rem;
+  }
+  
+  .chart-header-enhanced {
+    padding: 16px 20px;
+  }
+}
+
+@media (max-width: 968px) {
+  .chart-main-area {
+    flex-direction: column;
+  }
+  
+  .orderbook-section {
+    width: 100%;
+    max-height: 300px;
+    border-left: none;
+    border-top: 1px solid rgba(255, 255, 255, 0.1);
+  }
+  
+  .chart-header-enhanced {
+    flex-direction: column;
+    gap: 16px;
+    align-items: flex-start;
+  }
+  
+  .price-section {
+    flex-direction: column;
+    gap: 12px;
+  }
+  
+  .chart-controls {
+    width: 100%;
+    justify-content: space-between;
+  }
+}
+
+@media (max-width: 640px) {
+  .timeframe-selector {
+    flex-wrap: wrap;
+  }
+  
+  .timeframe-btn {
+    padding: 6px 10px;
+    font-size: 0.8rem;
+  }
+  
+  .price-value {
+    font-size: 1.5rem;
+  }
+  
+  .chart-header-enhanced {
+    padding: 12px 16px;
+  }
+  
+  .price-chart-section {
+    padding: 12px;
+  }
+}
