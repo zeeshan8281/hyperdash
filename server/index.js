@@ -411,7 +411,7 @@ app.post('/api/info', async (req, res) => {
   console.log(`📊 Info endpoint hit: ${type} (${clientRequests.count}/${RATE_LIMIT_MAX})`);
   
   // Early return if no valid symbol provided
-  if ((!pair || pair === 'undefined') && (!coin || coin === 'undefined')) {
+  if ((!pair || pair === 'undefined' || pair === 'null') && (!coin || coin === 'undefined' || coin === 'null')) {
     console.log('❌ No valid symbol provided:', { pair, coin });
     return res.json({ 
       ok: false, 
@@ -500,7 +500,7 @@ app.post('/api/info', async (req, res) => {
       // Handle order book requests
       const symbol = type === 'spotL2Book' ? pair : coin + '-USD';
       
-      if (!symbol || symbol === 'undefined-USD') {
+      if (!symbol || symbol === 'undefined-USD' || symbol === 'null-USD' || symbol.includes('undefined') || symbol.includes('null')) {
         console.log('❌ Invalid symbol for order book:', symbol);
         return res.json({
           ok: false,

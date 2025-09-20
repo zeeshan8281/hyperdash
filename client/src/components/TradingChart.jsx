@@ -96,7 +96,8 @@ export default function TradingChart({ selectedMarket, onWsStatusChange }) {
     };
 
     fetchCandles();
-    const interval = setInterval(fetchCandles, 30000); // Refresh every 30s
+    // Reduced refresh interval to 60 seconds to reduce server load
+    const interval = setInterval(fetchCandles, 60000);
     
     return () => clearInterval(interval);
   }, [selectedMarket, timeframe]);
@@ -212,52 +213,8 @@ export default function TradingChart({ selectedMarket, onWsStatusChange }) {
     };
   }, [selectedMarket]);
 
-  // Fallback order book fetch only when WebSocket fails
-  useEffect(() => {
-    if (!selectedMarket || wsConnected) return;
-    
-    const coin = marketToCoin(selectedMarket);
-    let timeoutId;
-
-    const fetchOrderBookFallback = async () => {
-      try {
-        const payload = isSpot
-           ? { type: 'spotL2Book', req: { pair: selectedMarket } }
-           : { type: 'l2Book', req: { coin } };
-
-        const resp = await fetch('/api/info', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(payload)
-        });
-        const json = await resp.json();
-        if (json?.ok && json?.data) {
-          const raw = json.data;
-          let bids = [];
-          let asks = [];
-
-          if (Array.isArray(raw?.bids) && Array.isArray(raw?.asks)) {
-            bids = raw.bids;
-            asks = raw.asks;
-          } else if (Array.isArray(raw?.levels)) {
-            const [b = [], a = []] = raw.levels;
-            bids = b;
-            asks = a;
-          }
-          setOrderBook({ bids: Array.isArray(bids) ? bids : [], asks: Array.isArray(asks) ? asks : [], timestamp: Date.now() });
-        }
-      } catch (e) {
-        console.log('Order book fallback failed:', e);
-      }
-    };
-
-    // Only fetch once as fallback, then rely on WebSocket
-    timeoutId = setTimeout(fetchOrderBookFallback, 2000);
-    
-    return () => {
-      if (timeoutId) clearTimeout(timeoutId);
-    };
-  }, [selectedMarket, wsConnected]);
+  // Removed fallback HTTP request to prevent request spam
+  // WebSocket handles all order book updates
 
   const formatTime = (timestamp) => {
     try {
