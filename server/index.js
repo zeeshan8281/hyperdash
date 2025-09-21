@@ -618,13 +618,38 @@ const wss = new WebSocket.Server({
   path: '/ws'
 });
 
-// WebSocket connection handling
-wss.on('connection', (ws) => {
-  console.log('🔌 WebSocket client connected');
-  
-  // Rate limiting for subscriptions
-  ws.subscriptionCount = 0;
-  ws.lastSubscriptionTime = 0;
+// Global connection tracking to prevent storms
+const activeConnections = new Map();
+const connectionLimits = {
+  maxConnectionsPerIP: 2,
+  maxSubscriptionsPerConnection: 1,
+  subscriptionCooldown: 15000 // 15 seconds
+};
+
+// WebSocket connection handling with aggressive storm prevention
+wss.on('connection', (ws, req) => {
+  const clientIP = req.socket.remoteAddress;
+  console.log(`🔌 WebSocket client connected from ${clientIP}`);
+
+  // Check connection limits
+  const ipConnections = Array.from(activeConnections.values()).filter(conn => conn.ip === clientIP);
+  if (ipConnections.length >= connectionLimits.maxConnectionsPerIP) {
+    console.log(`⚠️ Connection limit reached for IP ${clientIP}, closing connection`);
+    ws.close(1008, 'Too many connections from this IP');
+    return;
+  }
+
+  // Track this connection
+  const connectionId = Date.now() + Math.random();
+  activeConnections.set(connectionId, {
+    ws,
+    ip: clientIP,
+    subscriptions: 0,
+    lastSubscription: 0,
+    hyperliquidWs: null
+  });
+
+  ws.connectionId = connectionId;
   
   ws.on('message', (message) => {
     try {
@@ -632,42 +657,44 @@ wss.on('connection', (ws) => {
       console.log('📨 WebSocket message received:', data);
       
       if (data.method === 'ping') {
-        // Handle ping with pong
         ws.send(JSON.stringify({ channel: 'pong' }));
         return;
       }
       
       if (data.method === 'subscribe' && data.subscription) {
-        // Rate limiting: max 1 subscription per 5 seconds
+        const connection = activeConnections.get(connectionId);
+        if (!connection) return;
+
+        // Aggressive rate limiting
         const now = Date.now();
-        if (now - ws.lastSubscriptionTime < 5000) {
-          console.log('⚠️ Rate limiting: subscription too frequent');
+        if (now - connection.lastSubscription < connectionLimits.subscriptionCooldown) {
+          console.log('⚠️ Subscription cooldown active, ignoring request');
           return;
         }
-        ws.lastSubscriptionTime = now;
-        ws.subscriptionCount++;
+
+        if (connection.subscriptions >= connectionLimits.maxSubscriptionsPerConnection) {
+          console.log('⚠️ Max subscriptions reached for this connection');
+          return;
+        }
+
+        connection.lastSubscription = now;
+        connection.subscriptions++;
         
         const { type, coin, pair } = data.subscription;
         
-        // Clear any existing interval
-        if (ws.orderBookInterval) {
-          clearInterval(ws.orderBookInterval);
-        }
-        
         // Close existing Hyperliquid WebSocket if any
-        if (ws.hyperliquidWs) {
-          ws.hyperliquidWs.close();
-          ws.hyperliquidWs = null;
+        if (connection.hyperliquidWs) {
+          connection.hyperliquidWs.close();
+          connection.hyperliquidWs = null;
         }
         
         // Connect to REAL Hyperliquid WebSocket for live data
         const hyperliquidWs = new WebSocket('wss://api.hyperliquid.xyz/ws');
-        ws.hyperliquidWs = hyperliquidWs; // Store reference for cleanup
+        connection.hyperliquidWs = hyperliquidWs;
         
         hyperliquidWs.on('open', () => {
           console.log('🔗 Connected to Hyperliquid WebSocket');
           
-          // Subscribe to real order book data
           const subscribeMsg = {
             method: 'subscribe',
             subscription: { type, coin, pair }
@@ -680,7 +707,6 @@ wss.on('connection', (ws) => {
           try {
             const message = JSON.parse(data);
             
-            // Forward real data to our client
             if (ws.readyState === WebSocket.OPEN) {
               ws.send(JSON.stringify({
                 channel: type,
@@ -701,16 +727,14 @@ wss.on('connection', (ws) => {
         hyperliquidWs.on('error', (error) => {
           console.error('❌ Hyperliquid WebSocket error:', error);
         });
-        
-        // Store Hyperliquid WebSocket for cleanup
-        ws.hyperliquidWs = hyperliquidWs;
       }
       
       if (data.method === 'unsubscribe') {
-        // Close Hyperliquid WebSocket when unsubscribing
-        if (ws.hyperliquidWs) {
-          ws.hyperliquidWs.close();
-          ws.hyperliquidWs = null;
+        const connection = activeConnections.get(connectionId);
+        if (connection && connection.hyperliquidWs) {
+          connection.hyperliquidWs.close();
+          connection.hyperliquidWs = null;
+          connection.subscriptions = Math.max(0, connection.subscriptions - 1);
         }
       }
     } catch (error) {
@@ -719,14 +743,25 @@ wss.on('connection', (ws) => {
   });
   
   ws.on('close', () => {
-    console.log('🔌 WebSocket client disconnected');
-    if (ws.hyperliquidWs) {
-      ws.hyperliquidWs.close();
+    console.log(`🔌 WebSocket client disconnected from ${clientIP}`);
+    const connection = activeConnections.get(connectionId);
+    if (connection) {
+      if (connection.hyperliquidWs) {
+        connection.hyperliquidWs.close();
+      }
+      activeConnections.delete(connectionId);
     }
   });
   
   ws.on('error', (error) => {
     console.error('❌ WebSocket error:', error);
+    const connection = activeConnections.get(connectionId);
+    if (connection) {
+      if (connection.hyperliquidWs) {
+        connection.hyperliquidWs.close();
+      }
+      activeConnections.delete(connectionId);
+    }
   });
 });
 

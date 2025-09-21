@@ -96,7 +96,7 @@ export default function TradingChart({ selectedMarket, onWsStatusChange }) {
     };
   }, [selectedMarket, timeframe]);
 
-  // Simple WebSocket connection - only when market is selected
+  // Ultra-conservative WebSocket connection - only when market is selected
   useEffect(() => {
     if (!selectedMarket) {
       // Close connection if no market selected
@@ -118,11 +118,12 @@ export default function TradingChart({ selectedMarket, onWsStatusChange }) {
       clearTimeout(wsConnectionRef.current);
     }
 
-    // Debounce WebSocket connection to prevent storm
+    // Ultra-conservative debounce to prevent storm
     wsConnectionRef.current = setTimeout(() => {
       // Close existing connection
       if (wsRef.current) {
         wsRef.current.close();
+        wsRef.current = null;
       }
 
       const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
@@ -179,7 +180,7 @@ export default function TradingChart({ selectedMarket, onWsStatusChange }) {
         setWsConnected(false);
         onWsStatusChange?.(false);
       };
-    }, 500); // 500ms debounce
+    }, 2000); // 2 second debounce - much more conservative
 
     return () => {
       if (wsConnectionRef.current) {
