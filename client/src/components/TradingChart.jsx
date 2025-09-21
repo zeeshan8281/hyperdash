@@ -129,13 +129,21 @@ export default function TradingChart({ selectedMarket, onWsStatusChange }) {
     ws.onmessage = (e) => {
       try {
         const msg = JSON.parse(e.data);
+        console.log('📨 WebSocket message received:', msg);
+        
         if (msg.channel === 'l2Book' || msg.channel === 'spotL2Book') {
+          console.log('📊 Order book data:', msg.data);
           if (msg.data && msg.data.levels) {
             const [bids = [], asks = []] = msg.data.levels;
+            console.log('📈 Bids:', bids.slice(0, 3));
+            console.log('📉 Asks:', asks.slice(0, 3));
+            
             setOrderBook({
               bids: bids.slice(0, 10).map(([price, size]) => ({ price: Number(price), size: Number(size) })),
               asks: asks.slice(0, 10).map(([price, size]) => ({ price: Number(price), size: Number(size) }))
             });
+          } else {
+            console.log('❌ No levels in order book data');
           }
         }
       } catch (error) {
@@ -297,13 +305,21 @@ export default function TradingChart({ selectedMarket, onWsStatusChange }) {
             </div>
             
             <div className="asks-section">
-              {orderBook.asks.slice(0, 5).map((ask, i) => (
-                <div key={i} className="orderbook-row ask">
-                  <span className="price">${formatPrice(ask.price)}</span>
-                  <span className="size">{formatPrice(ask.size)}</span>
-                  <span className="total">{formatPrice(ask.price * ask.size)}</span>
+              {orderBook.asks.length > 0 ? (
+                orderBook.asks.slice(0, 5).map((ask, i) => (
+                  <div key={i} className="orderbook-row ask">
+                    <span className="price">${formatPrice(ask.price)}</span>
+                    <span className="size">{formatPrice(ask.size)}</span>
+                    <span className="total">{formatPrice(ask.price * ask.size)}</span>
+                  </div>
+                ))
+              ) : (
+                <div className="orderbook-row ask">
+                  <span className="price">No asks data</span>
+                  <span className="size">-</span>
+                  <span className="total">-</span>
                 </div>
-              ))}
+              )}
             </div>
             
             <div className="spread-indicator">
@@ -313,13 +329,21 @@ export default function TradingChart({ selectedMarket, onWsStatusChange }) {
             </div>
             
             <div className="bids-section">
-              {orderBook.bids.slice(0, 5).map((bid, i) => (
-                <div key={i} className="orderbook-row bid">
-                  <span className="price">${formatPrice(bid.price)}</span>
-                  <span className="size">{formatPrice(bid.size)}</span>
-                  <span className="total">{formatPrice(bid.price * bid.size)}</span>
+              {orderBook.bids.length > 0 ? (
+                orderBook.bids.slice(0, 5).map((bid, i) => (
+                  <div key={i} className="orderbook-row bid">
+                    <span className="price">${formatPrice(bid.price)}</span>
+                    <span className="size">{formatPrice(bid.size)}</span>
+                    <span className="total">{formatPrice(bid.price * bid.size)}</span>
+                  </div>
+                ))
+              ) : (
+                <div className="orderbook-row bid">
+                  <span className="price">No bids data</span>
+                  <span className="size">-</span>
+                  <span className="total">-</span>
                 </div>
-              ))}
+              )}
             </div>
           </div>
         </div>
