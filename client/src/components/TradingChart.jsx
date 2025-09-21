@@ -93,23 +93,27 @@ export default function TradingChart({ selectedMarket, onWsStatusChange }) {
     };
   }, [selectedMarket, timeframe]);
 
-  // Simple WebSocket connection with retry
+  // Simple WebSocket connection - only when market is selected
   useEffect(() => {
-    if (!selectedMarket) return;
+    if (!selectedMarket) {
+      // Close connection if no market selected
+      if (wsRef.current) {
+        wsRef.current.close();
+        wsRef.current = null;
+      }
+      setWsConnected(false);
+      onWsStatusChange?.(false);
+      return;
+    }
 
     // Close existing connection
     if (wsRef.current) {
       wsRef.current.close();
     }
 
-    let retryCount = 0;
-    const maxRetries = 3;
-    
-    const connectWebSocket = () => {
-      try {
-        const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-        const ws = new WebSocket(`${protocol}//${window.location.host}/ws`);
-        wsRef.current = ws;
+    const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+    const ws = new WebSocket(`${protocol}//${window.location.host}/ws`);
+    wsRef.current = ws;
 
     const subscription = isSpot
       ? { type: 'spotL2Book', pair: selectedMarket }
@@ -118,6 +122,7 @@ export default function TradingChart({ selectedMarket, onWsStatusChange }) {
     ws.onopen = () => {
       setWsConnected(true);
       onWsStatusChange?.(true);
+      // Only subscribe when connection is open
       ws.send(JSON.stringify({ method: 'subscribe', subscription }));
     };
 
@@ -138,42 +143,24 @@ export default function TradingChart({ selectedMarket, onWsStatusChange }) {
       }
     };
 
-        ws.onclose = (event) => {
-          console.log('WebSocket closed:', event.code, event.reason);
-          setWsConnected(false);
-          onWsStatusChange?.(false);
-          
-          // Retry connection if not a normal closure
-          if (event.code !== 1000 && retryCount < maxRetries) {
-            retryCount++;
-            console.log(`Retrying WebSocket connection (${retryCount}/${maxRetries})...`);
-            setTimeout(connectWebSocket, 2000);
-          }
-        };
-
-        ws.onerror = (error) => {
-          console.error('WebSocket error:', error);
-          setWsConnected(false);
-          onWsStatusChange?.(false);
-        };
-      } catch (error) {
-        console.error('Failed to create WebSocket:', error);
-        if (retryCount < maxRetries) {
-          retryCount++;
-          setTimeout(connectWebSocket, 2000);
-        }
-      }
+    ws.onclose = (event) => {
+      console.log('WebSocket closed:', event.code, event.reason);
+      setWsConnected(false);
+      onWsStatusChange?.(false);
     };
-    
-    // Start connection
-    connectWebSocket();
+
+    ws.onerror = (error) => {
+      console.error('WebSocket error:', error);
+      setWsConnected(false);
+      onWsStatusChange?.(false);
+    };
 
     return () => {
       if (wsRef.current) {
         wsRef.current.close();
       }
     };
-  }, [selectedMarket, isSpot, coin, onWsStatusChange]);
+  }, [selectedMarket]);
 
   // Utility functions
   const formatPrice = (price) => {
