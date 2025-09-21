@@ -613,7 +613,10 @@ app.post('/api/info', async (req, res) => {
 const server = http.createServer(app);
 
 // Create WebSocket server
-const wss = new WebSocket.Server({ server });
+const wss = new WebSocket.Server({ 
+  server,
+  path: '/ws'
+});
 
 // WebSocket connection handling
 wss.on('connection', (ws) => {
