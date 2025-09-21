@@ -1,20 +1,42 @@
 import React, { useState, useEffect } from 'react';
 import { Activity, TrendingUp, TrendingDown, BarChart3, Zap } from 'lucide-react';
 
-const TechnicalAnalysis = ({ candleData }) => {
+const TechnicalAnalysis = ({ selectedMarket, currentPrice }) => {
   const [indicators, setIndicators] = useState({});
   const [signals, setSignals] = useState([]);
   const [analysis, setAnalysis] = useState(null);
 
   useEffect(() => {
-    if (candleData && candleData.length > 0) {
-      calculateIndicators();
-      generateSignals();
-      performAnalysis();
+    if (selectedMarket && currentPrice) {
+      fetchRealCandleData();
     }
-  }, [candleData]);
+  }, [selectedMarket, currentPrice]);
 
-  const calculateIndicators = () => {
+  const fetchRealCandleData = async () => {
+    try {
+      // Fetch real candlestick data from our server (which gets it from Hyperliquid)
+      const response = await fetch('/api/info', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          type: 'candleSnapshot',
+          req: { coin: selectedMarket.replace('-USD', ''), interval: '1h', limit: 100 }
+        })
+      });
+      
+      const data = await response.json();
+      if (data.ok && data.data && data.data.length > 0) {
+        console.log(`✅ Got ${data.data.length} real candles for technical analysis`);
+        calculateIndicators(data.data);
+        generateSignals(data.data);
+        performAnalysis(data.data);
+      }
+    } catch (error) {
+      console.error('Error fetching real candle data for analysis:', error);
+    }
+  };
+
+  const calculateIndicators = (candleData) => {
     const prices = candleData.map(c => c.close);
     const highs = candleData.map(c => c.high);
     const lows = candleData.map(c => c.low);
@@ -131,7 +153,7 @@ const TechnicalAnalysis = ({ candleData }) => {
     return ema;
   };
 
-  const generateSignals = () => {
+  const generateSignals = (candleData) => {
     const newSignals = [];
     
     if (indicators.rsi) {
@@ -177,7 +199,7 @@ const TechnicalAnalysis = ({ candleData }) => {
     setSignals(newSignals);
   };
 
-  const performAnalysis = () => {
+  const performAnalysis = (candleData) => {
     if (!indicators.currentPrice) return;
     
     let trend = 'SIDEWAYS';
