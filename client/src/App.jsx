@@ -229,12 +229,19 @@ export default function App() {
       <main className="main-content">
         {activeTab === 'chart' && (
           <div className="chart-section">
-            <ErrorBoundary>
-              <TradingChart 
-                selectedMarket={selectedMarket} 
-                onWsStatusChange={(ok) => setConnectionStatus(ok ? 'connected' : 'connecting')} 
-              />
-            </ErrorBoundary>
+            {selectedMarket ? (
+              <ErrorBoundary>
+                <TradingChart 
+                  selectedMarket={selectedMarket} 
+                  onWsStatusChange={(ok) => setConnectionStatus(ok ? 'connected' : 'connecting')} 
+                />
+              </ErrorBoundary>
+            ) : (
+              <div className="no-market-selected">
+                <h3>Select a trading pair to view the chart</h3>
+                <p>Choose a market from the dropdown above to start trading</p>
+              </div>
+            )}
           </div>
         )}
         

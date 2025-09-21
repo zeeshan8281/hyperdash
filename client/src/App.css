@@ -356,6 +356,32 @@ body {
   background: rgba(255, 255, 255, 0.5);
 }
 
+/* No Market Selected */
+.no-market-selected {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 400px;
+  background: rgba(0, 0, 0, 0.2);
+  border-radius: 12px;
+  border: 2px dashed rgba(255, 255, 255, 0.1);
+  color: #8a8a8a;
+  text-align: center;
+  padding: 40px;
+}
+
+.no-market-selected h3 {
+  color: #ffffff;
+  margin-bottom: 16px;
+  font-size: 1.5rem;
+}
+
+.no-market-selected p {
+  font-size: 1rem;
+  line-height: 1.5;
+}
+
 /* Tab Navigation */
 .tab-navigation {
   display: flex;
