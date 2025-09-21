@@ -56,7 +56,8 @@ export default function App() {
     const spotList = spotPairs.length ? spotPairs : marketsData.map(m => m.spot).filter(Boolean);
     const list = marketType === 'perp' ? perpList : spotList;
 
-    if (list.length && !selectedMarket) setSelectedMarket(list[0]);
+    // Only auto-select if user hasn't selected anything yet AND we have markets
+    // if (list.length && !selectedMarket) setSelectedMarket(list[0]);
     if (list.length && selectedMarket && !list.includes(selectedMarket)) setSelectedMarket(list[0]);
   }, [marketsData, spotPairs, marketType]);
 
