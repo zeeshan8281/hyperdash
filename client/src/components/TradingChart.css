@@ -1,5 +1,4 @@
-/* Enhanced Trading Chart Styles */
-
+/* Simplified Trading Chart Styles */
 .trading-chart-container {
   display: flex;
   flex-direction: column;
@@ -10,16 +9,16 @@
   border-radius: 12px;
   border: 1px solid rgba(255, 255, 255, 0.1);
   overflow: hidden;
-  position: relative;
 }
 
 .chart-header-enhanced {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 24px 32px;
+  padding: 20px 24px;
   border-bottom: 1px solid rgba(255, 255, 255, 0.1);
   background: rgba(0, 0, 0, 0.2);
+  flex-shrink: 0;
 }
 
 .price-section {
@@ -34,8 +33,15 @@
   gap: 4px;
 }
 
+.market-name {
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: #a0a0a0;
+  text-transform: uppercase;
+}
+
 .price-value {
-  font-size: 2.8rem;
+  font-size: 2.4rem;
   font-weight: 700;
   color: #ffffff;
   line-height: 1;
@@ -57,32 +63,7 @@
   color: #ef4444;
 }
 
-.market-info {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
-
-.market-name {
-  font-size: 1.3rem;
-  font-weight: 600;
-  color: #ffffff;
-}
-
-.market-stats {
-  display: flex;
-  gap: 16px;
-}
-
-.stat {
-  display: flex;
-  align-items: center;
-  gap: 4px;
-  font-size: 0.85rem;
-  color: #a0a0a0;
-}
-
-.chart-controls {
+.controls-section {
   display: flex;
   align-items: center;
   gap: 20px;
@@ -118,35 +99,24 @@
   color: #ffffff;
 }
 
-.chart-type-selector {
-  display: flex;
-  gap: 2px;
-  background: rgba(255, 255, 255, 0.05);
-  border-radius: 8px;
-  padding: 4px;
-}
-
-.chart-type-btn {
-  padding: 8px;
-  background: transparent;
-  border: none;
-  color: #a0a0a0;
-  border-radius: 6px;
-  cursor: pointer;
-  transition: all 0.2s ease;
+.status-indicator {
   display: flex;
   align-items: center;
-  justify-content: center;
+  gap: 8px;
+  font-size: 0.85rem;
+  color: #a0a0a0;
 }
 
-.chart-type-btn:hover {
-  background: rgba(255, 255, 255, 0.1);
-  color: #ffffff;
+.status-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #ef4444;
+  transition: background-color 0.3s ease;
 }
 
-.chart-type-btn.active {
-  background: rgba(59, 130, 246, 0.8);
-  color: #ffffff;
+.status-dot.connected {
+  background: #10b981;
 }
 
 .chart-main-area {
@@ -155,28 +125,12 @@
   min-height: 0;
 }
 
-.chart-placeholder {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  height: 500px;
-  min-height: 400px;
-  max-height: 600px;
-  background: rgba(0, 0, 0, 0.2);
-  border-radius: 8px;
-  color: #8a8a8a;
-  font-size: 1.1rem;
-  font-weight: 500;
-  border: 2px dashed rgba(255, 255, 255, 0.1);
-  position: relative;
-  overflow: hidden;
-}
-
 .price-chart-section {
   flex: 1;
   padding: 20px;
   display: flex;
   flex-direction: column;
+  min-height: 0;
 }
 
 .chart-loading {
@@ -203,14 +157,25 @@
   100% { transform: rotate(360deg); }
 }
 
+.chart-placeholder {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  gap: 16px;
+  color: #8a8a8a;
+  font-size: 1.1rem;
+  font-weight: 500;
+}
+
 .orderbook-section {
-  max-width: 400px;
-  min-width: 350px;
-  width: 100%;
+  width: 350px;
   background: rgba(0, 0, 0, 0.3);
   border-left: 1px solid rgba(255, 255, 255, 0.1);
   display: flex;
   flex-direction: column;
+  flex-shrink: 0;
 }
 
 .orderbook-header {
@@ -298,45 +263,18 @@
 }
 
 /* Responsive Design */
-@media (min-width: 1920px) {
-  .chart-header-enhanced {
-    padding: 28px 40px;
-  }
-  
-  .price-value {
-    font-size: 3.2rem;
-  }
-  
-  .market-name {
-    font-size: 1.4rem;
-  }
-  
-  .orderbook-section {
-    max-width: 450px;
-    min-width: 400px;
-  }
-  
-  .price-section {
-    gap: 32px;
-  }
-  
-  .market-stats {
-    gap: 24px;
-  }
-}
-
 @media (max-width: 1200px) {
-  .orderbook-section {
-    max-width: 250px;
-    min-width: 200px;
+  .trading-chart-container {
+    height: 70vh;
+    min-height: 500px;
   }
   
   .price-value {
-    font-size: 1.8rem;
+    font-size: 2rem;
   }
   
-  .chart-header-enhanced {
-    padding: 16px 20px;
+  .orderbook-section {
+    width: 300px;
   }
 }
 
@@ -363,25 +301,9 @@
     gap: 12px;
   }
   
-  .chart-controls {
+  .controls-section {
     width: 100%;
     justify-content: space-between;
-  }
-}
-
-/* Enhanced Responsive Design */
-@media (max-width: 1200px) {
-  .trading-chart-container {
-    height: 70vh;
-    min-height: 500px;
-  }
-  
-  .price-value {
-    font-size: 2.2rem;
-  }
-  
-  .chart-placeholder {
-    height: 400px;
   }
 }
 
@@ -393,35 +315,14 @@
   
   .chart-header-enhanced {
     padding: 16px 20px;
-    flex-direction: column;
-    gap: 16px;
-  }
-  
-  .price-section {
-    flex-direction: column;
-    align-items: flex-start;
-    gap: 12px;
   }
   
   .price-value {
     font-size: 1.8rem;
   }
   
-  .controls-section {
-    flex-direction: column;
-    gap: 12px;
-  }
-  
-  .timeframe-selector {
-    flex-wrap: wrap;
-  }
-  
-  .chart-content {
+  .price-chart-section {
     padding: 16px;
-  }
-  
-  .chart-placeholder {
-    height: 300px;
   }
   
   .orderbook-section {
@@ -439,10 +340,6 @@
     min-height: 350px;
   }
   
-  .timeframe-selector {
-    flex-wrap: wrap;
-  }
-  
   .timeframe-btn {
     padding: 6px 10px;
     font-size: 0.8rem;
@@ -458,9 +355,5 @@
   
   .price-chart-section {
     padding: 12px;
-  }
-  
-  .chart-placeholder {
-    height: 250px;
   }
 }
