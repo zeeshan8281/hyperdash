@@ -622,6 +622,10 @@ const wss = new WebSocket.Server({
 wss.on('connection', (ws) => {
   console.log('🔌 WebSocket client connected');
   
+  // Rate limiting for subscriptions
+  ws.subscriptionCount = 0;
+  ws.lastSubscriptionTime = 0;
+  
   ws.on('message', (message) => {
     try {
       const data = JSON.parse(message);
@@ -634,6 +638,15 @@ wss.on('connection', (ws) => {
       }
       
       if (data.method === 'subscribe' && data.subscription) {
+        // Rate limiting: max 1 subscription per 5 seconds
+        const now = Date.now();
+        if (now - ws.lastSubscriptionTime < 5000) {
+          console.log('⚠️ Rate limiting: subscription too frequent');
+          return;
+        }
+        ws.lastSubscriptionTime = now;
+        ws.subscriptionCount++;
+        
         const { type, coin, pair } = data.subscription;
         
         // Clear any existing interval
@@ -641,8 +654,15 @@ wss.on('connection', (ws) => {
           clearInterval(ws.orderBookInterval);
         }
         
+        // Close existing Hyperliquid WebSocket if any
+        if (ws.hyperliquidWs) {
+          ws.hyperliquidWs.close();
+          ws.hyperliquidWs = null;
+        }
+        
         // Connect to REAL Hyperliquid WebSocket for live data
         const hyperliquidWs = new WebSocket('wss://api.hyperliquid.xyz/ws');
+        ws.hyperliquidWs = hyperliquidWs; // Store reference for cleanup
         
         hyperliquidWs.on('open', () => {
           console.log('🔗 Connected to Hyperliquid WebSocket');
