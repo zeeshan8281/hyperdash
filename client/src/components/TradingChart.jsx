@@ -93,7 +93,7 @@ export default function TradingChart({ selectedMarket, onWsStatusChange }) {
     };
   }, [selectedMarket, timeframe]);
 
-  // Simple WebSocket connection
+  // Simple WebSocket connection with retry
   useEffect(() => {
     if (!selectedMarket) return;
 
@@ -102,8 +102,14 @@ export default function TradingChart({ selectedMarket, onWsStatusChange }) {
       wsRef.current.close();
     }
 
-    const ws = new WebSocket(`ws://${window.location.host}/ws`);
-    wsRef.current = ws;
+    let retryCount = 0;
+    const maxRetries = 3;
+    
+    const connectWebSocket = () => {
+      try {
+        const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+        const ws = new WebSocket(`${protocol}//${window.location.host}/ws`);
+        wsRef.current = ws;
 
     const subscription = isSpot
       ? { type: 'spotL2Book', pair: selectedMarket }
@@ -132,15 +138,35 @@ export default function TradingChart({ selectedMarket, onWsStatusChange }) {
       }
     };
 
-    ws.onclose = () => {
-      setWsConnected(false);
-      onWsStatusChange?.(false);
-    };
+        ws.onclose = (event) => {
+          console.log('WebSocket closed:', event.code, event.reason);
+          setWsConnected(false);
+          onWsStatusChange?.(false);
+          
+          // Retry connection if not a normal closure
+          if (event.code !== 1000 && retryCount < maxRetries) {
+            retryCount++;
+            console.log(`Retrying WebSocket connection (${retryCount}/${maxRetries})...`);
+            setTimeout(connectWebSocket, 2000);
+          }
+        };
 
-    ws.onerror = () => {
-      setWsConnected(false);
-      onWsStatusChange?.(false);
+        ws.onerror = (error) => {
+          console.error('WebSocket error:', error);
+          setWsConnected(false);
+          onWsStatusChange?.(false);
+        };
+      } catch (error) {
+        console.error('Failed to create WebSocket:', error);
+        if (retryCount < maxRetries) {
+          retryCount++;
+          setTimeout(connectWebSocket, 2000);
+        }
+      }
     };
+    
+    // Start connection
+    connectWebSocket();
 
     return () => {
       if (wsRef.current) {
