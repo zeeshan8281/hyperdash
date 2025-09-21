@@ -52,15 +52,12 @@ export default function App() {
 
   // Keep selected market in sync with market type and list
   useEffect(() => {
-    console.log('🔄 Market sync useEffect triggered:', { marketsData: marketsData.length, spotPairs: spotPairs.length, marketType, selectedMarket });
-    
     const perpList = marketsData.map(m => m.perp).filter(Boolean);
     const spotList = spotPairs.length ? spotPairs : marketsData.map(m => m.spot).filter(Boolean);
     const list = marketType === 'perp' ? perpList : spotList;
 
     // Only change market if current selection is invalid for the current market type
     if (list.length && selectedMarket && !list.includes(selectedMarket)) {
-      console.log('🔄 Changing selected market from', selectedMarket, 'to', list[0]);
       setSelectedMarket(list[0]);
     }
   }, [marketsData, spotPairs, marketType, selectedMarket]);

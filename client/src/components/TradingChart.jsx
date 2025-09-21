@@ -96,8 +96,6 @@ export default function TradingChart({ selectedMarket, onWsStatusChange }) {
 
   // Simple WebSocket connection - only when market is selected
   useEffect(() => {
-    console.log('🔄 WebSocket useEffect triggered for market:', selectedMarket);
-    
     if (!selectedMarket) {
       // Close connection if no market selected
       if (wsRef.current) {
@@ -122,7 +120,6 @@ export default function TradingChart({ selectedMarket, onWsStatusChange }) {
     wsConnectionRef.current = setTimeout(() => {
       // Close existing connection
       if (wsRef.current) {
-        console.log('🔌 Closing existing WebSocket connection');
         wsRef.current.close();
       }
 
