@@ -679,6 +679,7 @@ wss.on('connection', (ws) => {
         hyperliquidWs.on('message', (data) => {
           try {
             const message = JSON.parse(data);
+            console.log('🔗 Hyperliquid WebSocket data received:', JSON.stringify(message, null, 2));
             
             // Forward real data to our client
             if (ws.readyState === WebSocket.OPEN) {
