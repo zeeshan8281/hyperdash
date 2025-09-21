@@ -96,8 +96,8 @@ export default function TradingChart({ selectedMarket, onWsStatusChange }) {
     };
 
     fetchCandles();
-    // Reduced refresh interval to 60 seconds to reduce server load
-    const interval = setInterval(fetchCandles, 60000);
+    // Only refresh every 5 minutes to reduce server load
+    const interval = setInterval(fetchCandles, 300000);
     
     return () => clearInterval(interval);
   }, [selectedMarket, timeframe]);
