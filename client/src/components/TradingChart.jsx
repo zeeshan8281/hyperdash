@@ -1,4 +1,3 @@
-// client/src/components/TradingChart.jsx
 import { useEffect, useState, useRef } from "react";
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { TrendingUp, TrendingDown, Activity, BookOpen } from 'lucide-react';
@@ -19,8 +18,11 @@ export default function TradingChart({ selectedMarket, onWsStatusChange }) {
 
   // Simple data fetching function
   const fetchCandleData = async () => {
-    if (!selectedMarket) return;
-    
+    if (!selectedMarket) {
+      setCandleData([]);
+      return;
+    }
+
     setLoading(true);
     try {
       const payload = isSpot
@@ -34,7 +36,7 @@ export default function TradingChart({ selectedMarket, onWsStatusChange }) {
       });
 
       const data = await response.json();
-      
+
       if (data?.ok && data?.data && Array.isArray(data.data)) {
         const candles = data.data.map(c => {
           if (Array.isArray(c)) {
@@ -77,7 +79,7 @@ export default function TradingChart({ selectedMarket, onWsStatusChange }) {
       return;
     }
 
-    // Clear any existing timeout
+    // Clear any existing debounce timer
     if (dataFetchRef.current) {
       clearTimeout(dataFetchRef.current);
     }
@@ -127,50 +129,50 @@ export default function TradingChart({ selectedMarket, onWsStatusChange }) {
       const ws = new WebSocket(`${protocol}//${window.location.host}/ws`);
       wsRef.current = ws;
 
-    const subscription = isSpot
-      ? { type: 'spotL2Book', pair: selectedMarket }
-      : { type: 'l2Book', coin };
+      const subscription = isSpot
+        ? { type: 'spotL2Book', pair: selectedMarket }
+        : { type: 'l2Book', coin };
 
-    ws.onopen = () => {
-      setWsConnected(true);
-      onWsStatusChange?.(true);
-      // Only subscribe when connection is open
-      ws.send(JSON.stringify({ method: 'subscribe', subscription }));
-    };
+      ws.onopen = () => {
+        setWsConnected(true);
+        onWsStatusChange?.(true);
+        // Only subscribe when connection is open
+        ws.send(JSON.stringify({ method: 'subscribe', subscription }));
+      };
 
-    ws.onmessage = (e) => {
-      try {
-        const msg = JSON.parse(e.data);
-        
-        if (msg.channel === 'l2Book' || msg.channel === 'spotL2Book') {
-          // Handle nested data structure from Hyperliquid
-          const orderBookData = msg.data?.data || msg.data;
+      ws.onmessage = (e) => {
+        try {
+          const msg = JSON.parse(e.data);
           
-          if (orderBookData && orderBookData.levels) {
-            const [bids = [], asks = []] = orderBookData.levels;
+          if (msg.channel === 'l2Book' || msg.channel === 'spotL2Book') {
+            // Handle nested data structure from Hyperliquid
+            const orderBookData = msg.data?.data || msg.data;
             
-            setOrderBook({
-              bids: bids.slice(0, 10).map(level => ({ 
-                price: Number(level.px), 
-                size: Number(level.sz) 
-              })),
-              asks: asks.slice(0, 10).map(level => ({ 
-                price: Number(level.px), 
-                size: Number(level.sz) 
-              }))
-            });
+            if (orderBookData && orderBookData.levels) {
+              const [bids = [], asks = []] = orderBookData.levels;
+              
+              setOrderBook({
+                bids: bids.slice(0, 10).map(level => ({ 
+                  price: Number(level.px), 
+                  size: Number(level.sz) 
+                })),
+                asks: asks.slice(0, 10).map(level => ({ 
+                  price: Number(level.px), 
+                  size: Number(level.sz) 
+                }))
+              });
+            }
           }
+        } catch (error) {
+          console.error('WebSocket message error:', error);
         }
-      } catch (error) {
-        console.error('WebSocket message error:', error);
-      }
-    };
+      };
 
-    ws.onclose = (event) => {
-      console.log('WebSocket closed:', event.code, event.reason);
-      setWsConnected(false);
-      onWsStatusChange?.(false);
-    };
+      ws.onclose = (event) => {
+        console.log('WebSocket closed:', event.code, event.reason);
+        setWsConnected(false);
+        onWsStatusChange?.(false);
+      };
 
       ws.onerror = (error) => {
         console.error('WebSocket error:', error);
@@ -198,21 +200,15 @@ export default function TradingChart({ selectedMarket, onWsStatusChange }) {
     });
   };
 
-  const formatTime = (timestamp) => {
-    if (!timestamp) return '--:--';
-    return new Date(timestamp).toLocaleTimeString('en-US', { 
-      hour: '2-digit', 
-      minute: '2-digit' 
-    });
-  };
-
-  const getCurrentPrice = () => {
-    if (!candleData || candleData.length === 0) return 0;
-    return candleData[candleData.length - 1]?.close || 0;
+  const formatVolume = (volume) => {
+    if (!volume || isNaN(volume)) return '0';
+    if (volume >= 1000000) return `${(volume / 1000000).toFixed(1)}M`;
+    if (volume >= 1000) return `${(volume / 1000).toFixed(1)}K`;
+    return volume.toFixed(0);
   };
 
   const getPriceChange = () => {
-    if (!candleData || candleData.length < 2) return { change: 0, percent: 0 };
+    if (candleData.length < 2) return { change: 0, percent: 0 };
     const current = candleData[candleData.length - 1]?.close || 0;
     const previous = candleData[candleData.length - 2]?.close || 0;
     const change = current - previous;
@@ -220,8 +216,7 @@ export default function TradingChart({ selectedMarket, onWsStatusChange }) {
     return { change, percent };
   };
 
-  const currentPrice = getCurrentPrice();
-  const { change, percent } = getPriceChange();
+  const priceChange = getPriceChange();
 
   return (
     <div className="trading-chart-container">
@@ -230,17 +225,28 @@ export default function TradingChart({ selectedMarket, onWsStatusChange }) {
         <div className="price-section">
           <div className="current-price">
             <div className="market-name">{selectedMarket || 'Select Market'}</div>
-            <div className="price-value">${formatPrice(currentPrice)}</div>
-            <div className={`price-change ${change >= 0 ? 'positive' : 'negative'}`}>
-              {change >= 0 ? <TrendingUp size={16} /> : <TrendingDown size={16} />}
-              <span>${formatPrice(Math.abs(change))} ({percent.toFixed(2)}%)</span>
+            <div className="price-value">${formatPrice(candleData[candleData.length - 1]?.close || 0)}</div>
+            <div className={`price-change ${priceChange.change >= 0 ? 'positive' : 'negative'}`}>
+              {priceChange.change >= 0 ? <TrendingUp size={14} /> : <TrendingDown size={14} />}
+              {formatPrice(Math.abs(priceChange.change))} ({priceChange.percent.toFixed(2)}%)
+            </div>
+          </div>
+          <div className="market-stats">
+            <div className="stat-item">
+              <span>24h Vol:</span> {formatVolume(candleData.reduce((sum, c) => sum + (c.volume || 0), 0))}
+            </div>
+            <div className="stat-item">
+              <span>High:</span> ${formatPrice(Math.max(...candleData.map(c => c.high || 0)))}
+            </div>
+            <div className="stat-item">
+              <span>Low:</span> ${formatPrice(Math.min(...candleData.map(c => c.low || 0)))}
             </div>
           </div>
         </div>
-
+        
         <div className="controls-section">
           <div className="timeframe-selector">
-            {['1h', '4h', '1d'].map(tf => (
+            {['5m', '15m', '1h', '4h', '1d'].map(tf => (
               <button
                 key={tf}
                 className={`timeframe-btn ${timeframe === tf ? 'active' : ''}`}
@@ -251,9 +257,10 @@ export default function TradingChart({ selectedMarket, onWsStatusChange }) {
             ))}
           </div>
           
-          <div className="status-indicator">
-            <div className={`status-dot ${wsConnected ? 'connected' : 'disconnected'}`}></div>
-            <span>{wsConnected ? 'Live' : 'Connecting...'}</span>
+          <div className="chart-type-selector">
+            <button className="chart-type-btn active">
+              <Activity size={16} />
+            </button>
           </div>
         </div>
       </div>
@@ -272,32 +279,34 @@ export default function TradingChart({ selectedMarket, onWsStatusChange }) {
                 <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.1)" />
                 <XAxis 
                   dataKey="time" 
-                  tickFormatter={formatTime}
-                  stroke="rgba(255,255,255,0.5)"
-                  fontSize={12}
+                  type="number"
+                  scale="time"
+                  domain={['dataMin', 'dataMax']}
+                  tickFormatter={(time) => new Date(time).toLocaleTimeString()}
+                  stroke="rgba(255,255,255,0.6)"
                 />
                 <YAxis 
                   domain={['dataMin', 'dataMax']}
-                  stroke="rgba(255,255,255,0.5)"
-                  fontSize={12}
+                  tickFormatter={(value) => `$${formatPrice(value)}`}
+                  stroke="rgba(255,255,255,0.6)"
                 />
-                <Tooltip 
+                <Tooltip
                   contentStyle={{
                     backgroundColor: 'rgba(0,0,0,0.8)',
                     border: '1px solid rgba(255,255,255,0.2)',
                     borderRadius: '8px',
                     color: '#ffffff'
                   }}
+                  labelFormatter={(time) => new Date(time).toLocaleString()}
                   formatter={(value) => [`$${formatPrice(value)}`, 'Price']}
-                  labelFormatter={(time) => formatTime(time)}
                 />
-                <Line 
-                  type="monotone" 
-                  dataKey="close" 
-                  stroke="#3b82f6" 
+                <Line
+                  type="monotone"
+                  dataKey="close"
+                  stroke={priceChange.change >= 0 ? "#10b981" : "#ef4444"}
                   strokeWidth={2}
                   dot={false}
-                  activeDot={{ r: 4, fill: '#3b82f6' }}
+                  activeDot={{ r: 4, fill: priceChange.change >= 0 ? "#10b981" : "#ef4444" }}
                 />
               </LineChart>
             </ResponsiveContainer>
