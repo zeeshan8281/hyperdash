@@ -11,6 +11,7 @@ export default function TradingChart({ selectedMarket, onWsStatusChange }) {
   const [wsConnected, setWsConnected] = useState(false);
   const wsRef = useRef(null);
   const dataFetchRef = useRef(null);
+  const wsConnectionRef = useRef(null);
 
   // Simple market type detection
   const isSpot = selectedMarket && selectedMarket.includes('/');
@@ -95,25 +96,39 @@ export default function TradingChart({ selectedMarket, onWsStatusChange }) {
 
   // Simple WebSocket connection - only when market is selected
   useEffect(() => {
+    console.log('🔄 WebSocket useEffect triggered for market:', selectedMarket);
+    
     if (!selectedMarket) {
       // Close connection if no market selected
       if (wsRef.current) {
         wsRef.current.close();
         wsRef.current = null;
       }
+      if (wsConnectionRef.current) {
+        clearTimeout(wsConnectionRef.current);
+        wsConnectionRef.current = null;
+      }
       setWsConnected(false);
       onWsStatusChange?.(false);
       return;
     }
 
-    // Close existing connection
-    if (wsRef.current) {
-      wsRef.current.close();
+    // Clear any existing connection timeout
+    if (wsConnectionRef.current) {
+      clearTimeout(wsConnectionRef.current);
     }
 
-    const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-    const ws = new WebSocket(`${protocol}//${window.location.host}/ws`);
-    wsRef.current = ws;
+    // Debounce WebSocket connection to prevent storm
+    wsConnectionRef.current = setTimeout(() => {
+      // Close existing connection
+      if (wsRef.current) {
+        console.log('🔌 Closing existing WebSocket connection');
+        wsRef.current.close();
+      }
+
+      const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+      const ws = new WebSocket(`${protocol}//${window.location.host}/ws`);
+      wsRef.current = ws;
 
     const subscription = isSpot
       ? { type: 'spotL2Book', pair: selectedMarket }
@@ -129,21 +144,24 @@ export default function TradingChart({ selectedMarket, onWsStatusChange }) {
     ws.onmessage = (e) => {
       try {
         const msg = JSON.parse(e.data);
-        console.log('📨 WebSocket message received:', msg);
         
         if (msg.channel === 'l2Book' || msg.channel === 'spotL2Book') {
-          console.log('📊 Order book data:', msg.data);
-          if (msg.data && msg.data.levels) {
-            const [bids = [], asks = []] = msg.data.levels;
-            console.log('📈 Bids:', bids.slice(0, 3));
-            console.log('📉 Asks:', asks.slice(0, 3));
+          // Handle nested data structure from Hyperliquid
+          const orderBookData = msg.data?.data || msg.data;
+          
+          if (orderBookData && orderBookData.levels) {
+            const [bids = [], asks = []] = orderBookData.levels;
             
             setOrderBook({
-              bids: bids.slice(0, 10).map(([price, size]) => ({ price: Number(price), size: Number(size) })),
-              asks: asks.slice(0, 10).map(([price, size]) => ({ price: Number(price), size: Number(size) }))
+              bids: bids.slice(0, 10).map(level => ({ 
+                price: Number(level.px), 
+                size: Number(level.sz) 
+              })),
+              asks: asks.slice(0, 10).map(level => ({ 
+                price: Number(level.px), 
+                size: Number(level.sz) 
+              }))
             });
-          } else {
-            console.log('❌ No levels in order book data');
           }
         }
       } catch (error) {
@@ -157,13 +175,17 @@ export default function TradingChart({ selectedMarket, onWsStatusChange }) {
       onWsStatusChange?.(false);
     };
 
-    ws.onerror = (error) => {
-      console.error('WebSocket error:', error);
-      setWsConnected(false);
-      onWsStatusChange?.(false);
-    };
+      ws.onerror = (error) => {
+        console.error('WebSocket error:', error);
+        setWsConnected(false);
+        onWsStatusChange?.(false);
+      };
+    }, 500); // 500ms debounce
 
     return () => {
+      if (wsConnectionRef.current) {
+        clearTimeout(wsConnectionRef.current);
+      }
       if (wsRef.current) {
         wsRef.current.close();
       }
