@@ -2,9 +2,15 @@
 import { useEffect, useState } from 'react';
 import TradingChart from './components/TradingChart';
 import ErrorBoundary from './components/ErrorBoundary';
+import PortfolioTracker from './components/PortfolioTracker';
+import TechnicalAnalysis from './components/TechnicalAnalysis';
+import AlertsSystem from './components/AlertsSystem';
 import './App.css';
 import './components/TradingChart.css';
 import './components/ErrorBoundary.css';
+import './components/PortfolioTracker.css';
+import './components/TechnicalAnalysis.css';
+import './components/AlertsSystem.css';
 
 export default function App() {
   const [marketsData, setMarketsData] = useState([]);
@@ -18,6 +24,7 @@ export default function App() {
   const [priceChangePercent, setPriceChangePercent] = useState(0);
   const [volume24h, setVolume24h] = useState(0);
   const [useRealData, setUseRealData] = useState(false);
+  const [activeTab, setActiveTab] = useState('chart');
 
   useEffect(() => {
     // Fetch perps (coins) with perp/spot symbols from allMids
@@ -189,16 +196,79 @@ export default function App() {
         </div>
       </div>
 
-      {/* Main Chart */}
+      {/* Tab Navigation */}
+      <div className="tab-navigation">
+        <button 
+          className={`tab-btn ${activeTab === 'chart' ? 'active' : ''}`}
+          onClick={() => setActiveTab('chart')}
+        >
+          📈 Chart
+        </button>
+        <button 
+          className={`tab-btn ${activeTab === 'portfolio' ? 'active' : ''}`}
+          onClick={() => setActiveTab('portfolio')}
+        >
+          💼 Portfolio
+        </button>
+        <button 
+          className={`tab-btn ${activeTab === 'analysis' ? 'active' : ''}`}
+          onClick={() => setActiveTab('analysis')}
+        >
+          🔍 Analysis
+        </button>
+        <button 
+          className={`tab-btn ${activeTab === 'alerts' ? 'active' : ''}`}
+          onClick={() => setActiveTab('alerts')}
+        >
+          🔔 Alerts
+        </button>
+      </div>
+
+      {/* Main Content */}
       <main className="main-content">
-        <div className="chart-section">
-          <ErrorBoundary>
-            <TradingChart 
-              selectedMarket={selectedMarket} 
-              onWsStatusChange={(ok) => setConnectionStatus(ok ? 'connected' : 'connecting')} 
-            />
-          </ErrorBoundary>
-        </div>
+        {activeTab === 'chart' && (
+          <div className="chart-section">
+            <ErrorBoundary>
+              <TradingChart 
+                selectedMarket={selectedMarket} 
+                onWsStatusChange={(ok) => setConnectionStatus(ok ? 'connected' : 'connecting')} 
+              />
+            </ErrorBoundary>
+          </div>
+        )}
+        
+        {activeTab === 'portfolio' && (
+          <div className="portfolio-section">
+            <ErrorBoundary>
+              <PortfolioTracker 
+                selectedMarket={selectedMarket}
+                currentPrice={currentPrice}
+              />
+            </ErrorBoundary>
+          </div>
+        )}
+        
+        {activeTab === 'analysis' && (
+          <div className="analysis-section">
+            <ErrorBoundary>
+              <TechnicalAnalysis 
+                selectedMarket={selectedMarket}
+                currentPrice={currentPrice}
+              />
+            </ErrorBoundary>
+          </div>
+        )}
+        
+        {activeTab === 'alerts' && (
+          <div className="alerts-section">
+            <ErrorBoundary>
+              <AlertsSystem 
+                selectedMarket={selectedMarket}
+                currentPrice={currentPrice}
+              />
+            </ErrorBoundary>
+          </div>
+        )}
       </main>
     </div>
   );
