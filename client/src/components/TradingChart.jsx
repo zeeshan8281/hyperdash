@@ -1,5 +1,5 @@
 // client/src/components/TradingChart.jsx
-import { useEffect, useState, useRef, useCallback } from "react";
+import { useEffect, useState, useRef } from "react";
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { TrendingUp, TrendingDown, Activity, BookOpen } from 'lucide-react';
 
@@ -16,8 +16,8 @@ export default function TradingChart({ selectedMarket, onWsStatusChange }) {
   const isSpot = selectedMarket && selectedMarket.includes('/');
   const coin = selectedMarket ? (isSpot ? selectedMarket.split('/')[0] : selectedMarket.split('-')[0]) : 'ETH';
 
-  // Stable data fetching with proper cleanup
-  const fetchCandleData = useCallback(async () => {
+  // Simple data fetching function
+  const fetchCandleData = async () => {
     if (!selectedMarket) return;
     
     setLoading(true);
@@ -67,7 +67,7 @@ export default function TradingChart({ selectedMarket, onWsStatusChange }) {
     } finally {
       setLoading(false);
     }
-  }, [selectedMarket, timeframe, isSpot, coin]);
+  };
 
   // Single useEffect for data fetching
   useEffect(() => {
@@ -91,7 +91,7 @@ export default function TradingChart({ selectedMarket, onWsStatusChange }) {
         clearTimeout(dataFetchRef.current);
       }
     };
-  }, [selectedMarket, fetchCandleData]);
+  }, [selectedMarket, timeframe]);
 
   // Simple WebSocket connection
   useEffect(() => {
