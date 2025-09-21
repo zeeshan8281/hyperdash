@@ -1,5 +1,5 @@
 // client/src/components/TradingChart.jsx
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useState, useRef, useMemo } from "react";
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, ComposedChart, Bar } from 'recharts';
 import { TrendingUp, TrendingDown, Activity, BookOpen, BarChart3 } from 'lucide-react';
 
@@ -9,7 +9,6 @@ export default function TradingChart({ selectedMarket, onWsStatusChange }) {
   const [timeframe, setTimeframe] = useState('1h');
   const [chartType, setChartType] = useState('line'); // 'line' or 'candle'
   const [loading, setLoading] = useState(true);
-  const isSpot = !!selectedMarket && selectedMarket.includes('/');
   const wsRef = useRef(null);
   const [wsConnected, setWsConnected] = useState(false);
 
@@ -20,16 +19,30 @@ export default function TradingChart({ selectedMarket, onWsStatusChange }) {
     return coin;
   };
 
+  // Memoize isSpot to prevent unnecessary re-renders
+  const isSpot = useMemo(() => !!selectedMarket && selectedMarket.includes('/'), [selectedMarket]);
+  
+  // Debounce selectedMarket to prevent excessive API calls
+  const [debouncedMarket, setDebouncedMarket] = useState(selectedMarket);
+  
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedMarket(selectedMarket);
+    }, 500);
+    
+    return () => clearTimeout(timer);
+  }, [selectedMarket]);
+
   // Fetch candlestick data via /api/info (Perp: candleSnapshot, Spot: spotCandleSnapshot)
   useEffect(() => {
-    if (!selectedMarket) return;
-    const coin = marketToCoin(selectedMarket);
+    if (!debouncedMarket) return;
+    const coin = marketToCoin(debouncedMarket);
 
     const fetchCandles = async () => {
       setLoading(true);
       try {
         const payload = isSpot
-          ? { type: 'spotCandleSnapshot', req: { pair: selectedMarket, interval: timeframe } }
+          ? { type: 'spotCandleSnapshot', req: { pair: debouncedMarket, interval: timeframe } }
           : { type: 'candleSnapshot', req: { coin, interval: timeframe } };
 
         const resp = await fetch('/api/info', {
@@ -96,15 +109,15 @@ export default function TradingChart({ selectedMarket, onWsStatusChange }) {
     };
 
     fetchCandles();
-    // Only refresh every 5 minutes to reduce server load
-    const interval = setInterval(fetchCandles, 300000);
+    // Only refresh every 10 minutes to reduce server load
+    const interval = setInterval(fetchCandles, 600000);
     
     return () => clearInterval(interval);
-  }, [selectedMarket, timeframe]);
+  }, [debouncedMarket, timeframe, isSpot]);
 
   // Realtime Order Book via WebSocket (Perp: l2Book, Spot: spotL2Book)
   useEffect(() => {
-    if (!selectedMarket) return;
+    if (!debouncedMarket) return;
 
     // Close previous connection if any
     try { if (wsRef.current) wsRef.current.close(); } catch {}
@@ -114,9 +127,9 @@ export default function TradingChart({ selectedMarket, onWsStatusChange }) {
     const ws = new WebSocket(url);
     wsRef.current = ws;
 
-    const coin = marketToCoin(selectedMarket);
+    const coin = marketToCoin(debouncedMarket);
     const subscription = isSpot
-      ? { type: 'spotL2Book', pair: selectedMarket }
+      ? { type: 'spotL2Book', pair: debouncedMarket }
       : { type: 'l2Book', coin };
 
     let connectionTimeout;
@@ -211,7 +224,7 @@ export default function TradingChart({ selectedMarket, onWsStatusChange }) {
         ws.close();
       } catch {}
     };
-  }, [selectedMarket]);
+  }, [debouncedMarket, isSpot]);
 
   // Removed fallback HTTP request to prevent request spam
   // WebSocket handles all order book updates
